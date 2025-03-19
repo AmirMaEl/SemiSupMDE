@@ -22,13 +22,19 @@ In monocular depth estimation, unsupervised domain adaptation has recently been 
 After downloading the data and the models you can test the model on the KITTI eigen split using `python test.py`.
 # Cite our work 
 ```
-@misc{elghoussani2024consistencyregularisationunsuperviseddomain,
-      title={Consistency Regularisation for Unsupervised Domain Adaptation in Monocular Depth Estimation}, 
-      author={Amir El-Ghoussani and Julia Hornauer and Gustavo Carneiro and Vasileios Belagiannis},
-      year={2024},
-      eprint={2405.17704},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV},
-      url={https://arxiv.org/abs/2405.17704}, 
+@InProceedings{pmlr-v274-el-ghoussani25a,
+  title = 	 {Consistency Regularisation for Unsupervised Domain Adaptation in Monocular Depth Estimation},
+  author =       {El-Ghoussani, Amir and Hornauer, Julia and Carneiro, Gustavo and Belagiannis, Vasileios},
+  booktitle = 	 {Proceedings of The 3rd Conference on Lifelong Learning Agents},
+  pages = 	 {577--596},
+  year = 	 {2025},
+  editor = 	 {Lomonaco, Vincenzo and Melacci, Stefano and Tuytelaars, Tinne and Chandar, Sarath and Pascanu, Razvan},
+  volume = 	 {274},
+  series = 	 {Proceedings of Machine Learning Research},
+  month = 	 {29 Jul--01 Aug},
+  publisher =    {PMLR},
+  pdf = 	 {https://raw.githubusercontent.com/mlresearch/v274/main/assets/el-ghoussani25a/el-ghoussani25a.pdf},
+  url = 	 {https://proceedings.mlr.press/v274/el-ghoussani25a.html},
+  abstract = 	 {In monocular depth estimation, unsupervised domain adaptation has recently been explored to relax the dependence on large annotated image-based depth datasets. However, this comes at the cost of training multiple models or requiring complex training protocols. We formulate unsupervised domain adaptation for monocular depth estimation as a consistency-based semi-supervised learning problem by assuming access only to the source domain ground truth labels. To this end, we introduce a pairwise loss function that regularises predictions on the source domain while enforcing perturbation consistency across multiple augmented views of the unlabelled target samples. Importantly, our approach is simple and effective, requiring only training of a single model in contrast to the prior work. In our experiments, we rely on the standard depth estimation benchmarks KITTI and NYUv2 to demonstrate state-of-the-art results compared to related approaches. Furthermore, we analyse the simplicity and effectiveness of our approach in a series of ablation studies. The code is available at \url{https://github.com/AmirMaEl/SemiSupMDE}.}
 }
 ```
