@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "semisupmde"
+version = "1.0.0"
+description = "Consistency Regularisation for Unsupervised Domain Adaptation in Monocular Depth Estimation (CoLLAs 2024)"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+    {name = "Amir El-Ghoussani"},
+    {name = "Julia Hornauer"},
+    {name = "Gustavo Carneiro"},
+    {name = "Vasileios Belagiannis"},
+]
+dependencies = [
+    "torch>=2.0",
+    "torchvision>=0.15",
+    "numpy",
+    "opencv-python-headless",
+    "pillow",
+    "tqdm",
+    "matplotlib",
+]
+
+[project.urls]
+Paper = "https://arxiv.org/abs/2405.17704"
+Repository = "https://github.com/AmirMaEl/SemiSupMDE"
+
+[project.scripts]
+semisupmde = "semisupmde.cli:main"
+
+[tool.setuptools]
+packages = ["semisupmde", "semisupmde.data"]
+
+[tool.setuptools.package-data]
+semisupmde = ["splits/*.txt"]

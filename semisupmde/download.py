@@ -1,15 +1,15 @@
 """Download the models and the data needed for evaluation or finetuning.
 
-  python download.py models            # pretrained_vKITTI.pth and finetuned_KITTI.pth into ./checkpoints
-  python download.py kitti test        # KITTI files of the given splits (test, val, train) into KITTI_ROOT
-  python download.py vkitti            # Virtual KITTI 1.3.1 RGB and depth into VKITTI_ROOT (about 20 GB)
+  semisupmde download models           # pretrained and finetuned checkpoints into CHECKPOINT_DIR
+  semisupmde download kitti test       # KITTI files of the given splits (test, val, train) into KITTI_ROOT
+  semisupmde download vkitti           # Virtual KITTI 1.3.1 RGB and depth into VKITTI_ROOT (about 20 GB)
 
 The KITTI raw drives are zip archives of up to several GB on the KITTI server. Only the files listed in the
 split files are needed (the image, plus the velodyne scan for the evaluation splits), so these are read
 directly out of the remote archives with HTTP range requests instead of downloading whole drives
 (about 2 GB for the test split instead of 76 GB). Everything is skipped if it already exists.
 """
-import argparse
+import hashlib
 import io
 import os
 import shutil
@@ -19,12 +19,8 @@ import urllib.request
 import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-import config
+from . import config
 
-MODEL_URLS = {
-    'pretrained_vKITTI.pth': 'https://faubox.rrze.uni-erlangen.de/dl/fiRocZxYkVUdcueEYpFWWd/pretrained_vKITTI.pth',
-    'finetuned_KITTI.pth': 'https://faubox.rrze.uni-erlangen.de/dl/fiQirkjS1AraYBgLq9fCGx/finetuned_KITTI.pth',
-}
 KITTI_URL = 'https://s3.eu-central-1.amazonaws.com/avg-kitti/raw_data/'
 VKITTI_URL = 'https://download.europe.naverlabs.com/virtual-kitti-1.3.1/'
 RETRIES = 5
@@ -101,9 +97,30 @@ class RemoteFile(io.RawIOBase):
         return len(chunk)
 
 
+def md5(path):
+    h = hashlib.md5()
+    with open(path, 'rb') as f:
+        for chunk in iter(lambda: f.read(1 << 22), b''):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def download_model(name):
+    """Download a released model ('pretrained' or 'finetuned') if needed and return its path."""
+    filename, url, checksum = config.MODELS[name]
+    path = os.path.join(config.CHECKPOINT_DIR, filename)
+    if not os.path.exists(path):
+        download(url, path)
+        if md5(path) != checksum:
+            os.rename(path, path + '.corrupt')
+            raise IOError('%s does not have the expected md5 %s (download link changed or broken?), '
+                          'moved to %s.corrupt' % (url, checksum, path))
+    return path
+
+
 def download_models():
-    for name, url in MODEL_URLS.items():
-        download(url, os.path.join(config.CHECKPOINT_DIR, name))
+    for name in config.MODELS:
+        download_model(name)
 
 
 def kitti_files(splits):
@@ -180,19 +197,3 @@ def download_vkitti():
         os.rename(os.path.join(tmp, name), os.path.join(root, name))
         os.rmdir(tmp)
         os.remove(tar_path)
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('what', choices=['models', 'kitti', 'vkitti'])
-    parser.add_argument('splits', nargs='*', help='KITTI splits to download: test, val, train (default: test)')
-    args = parser.parse_args()
-    for split in args.splits:
-        if split not in ('test', 'val', 'train'):
-            parser.error('unknown split %s' % split)
-    if args.what == 'models':
-        download_models()
-    elif args.what == 'kitti':
-        download_kitti(args.splits or ['test'])
-    else:
-        download_vkitti()

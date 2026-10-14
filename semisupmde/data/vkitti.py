@@ -9,7 +9,7 @@ import torchvision.transforms.functional as F
 from torchvision.transforms import InterpolationMode
 from PIL import Image
 
-from loaders.kitti import read_split, to_tensor
+from .kitti import read_split, to_tensor
 
 MAX_DEPTH_CM = 8000  # vKITTI depth is stored in cm; clip at 80 m
 

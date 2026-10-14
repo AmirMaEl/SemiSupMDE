@@ -17,12 +17,12 @@ import torch
 import torch.utils.data as data
 from tqdm import tqdm
 
-import config
-from evaluate import evaluate, print_results
-from loaders.kitti import KittiTarget
-from loaders.vkitti import VKittiPairs
-from losses import consistency_loss, pairwise_source_loss
-from model import load_model
+from . import config
+from .data.kitti import KittiTarget
+from .data.vkitti import VKittiPairs
+from .evaluate import evaluate, print_results
+from .losses import consistency_loss, pairwise_source_loss
+from .model import load_model
 
 
 def infinite(loader):
@@ -36,7 +36,19 @@ def split_predictions(preds, sizes):
     return [[s[i] for s in per_scale] for i in range(len(sizes))]
 
 
-def finetune(args):
+def finetune(init='pretrained', out_dir=None, seed=0, **settings):
+    """
+    Finetune a model (a released model name or a checkpoint path) with the paper's settings
+    (config.FINETUNE), any of which can be overridden as keyword arguments.
+
+    Returns:
+        The run directory with last.pth, best_val.pth, args.json and metrics.jsonl.
+    """
+    unknown = set(settings) - set(config.FINETUNE)
+    if unknown:
+        raise TypeError('unknown finetuning settings: %s' % ', '.join(sorted(unknown)))
+    args = argparse.Namespace(init=init, out_dir=out_dir or config.CHECKPOINT_DIR, seed=seed,
+                              **{**config.FINETUNE, **settings})
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
@@ -97,13 +109,4 @@ def finetune(args):
 
     print_results(evaluate(load_model(os.path.join(out_dir, 'best_val.pth')), 'test', (50, 80)), 'best_val.pth test')
     print('checkpoints and metrics in %s' % out_dir)
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--init', type=str, default=config.PRETRAINED)
-    parser.add_argument('--out_dir', type=str, default=config.CHECKPOINT_DIR)
-    parser.add_argument('--seed', type=int, default=0)
-    for k, v in config.FINETUNE.items():
-        parser.add_argument('--' + k, type=type(v) if not isinstance(v, bool) else int, default=v)
-    finetune(parser.parse_args())
+    return out_dir

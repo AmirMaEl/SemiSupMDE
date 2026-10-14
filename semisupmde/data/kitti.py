@@ -7,7 +7,7 @@ import torch.utils.data as data
 import torchvision.transforms as transforms
 from PIL import Image
 
-from loaders.rand_augment import RandAugment
+from .rand_augment import RandAugment
 
 
 def read_split(split_file, root):

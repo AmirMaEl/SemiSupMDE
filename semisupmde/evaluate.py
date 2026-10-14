@@ -1,15 +1,13 @@
 """Evaluate a depth model on the KITTI Eigen split (Garg crop, depth capped at 50 m or 80 m)."""
-import argparse
-
 import cv2
 import numpy as np
 import torch
 import torch.utils.data as data
 from tqdm import tqdm
 
-import config
-from loaders.kitti import KittiDepth
-from model import MAX_DEPTH, load_model
+from . import config
+from .data.kitti import KittiDepth
+from .model import MAX_DEPTH
 
 MIN_DEPTH = 1e-3
 METRICS = ['abs_rel', 'sq_rel', 'rmse', 'rmse_log', 'a1', 'a2', 'a3']
@@ -25,7 +23,7 @@ def compute_errors(gt, pred):
 
 
 @torch.no_grad()
-def evaluate(model, split='test', caps=(50,), num_workers=8):
+def evaluate(model, split='test', caps=(50,), kitti_root=None, num_workers=8):
     """
     Evaluate on a KITTI split. Predictions are upsampled to the ground truth resolution, clamped to
     [1e-3, cap] and compared inside the Garg crop where 1e-3 < gt < cap. No median scaling.
@@ -34,14 +32,15 @@ def evaluate(model, split='test', caps=(50,), num_workers=8):
         {cap: {metric: value}}, metrics averaged over images.
     """
     was_training = model.training
+    device = next(model.parameters()).device
     model.eval()
-    loader = data.DataLoader(KittiDepth(config.SPLITS[split], config.KITTI_ROOT, config.IMG_SIZE),
+    loader = data.DataLoader(KittiDepth(config.SPLITS[split], kitti_root or config.KITTI_ROOT, config.IMG_SIZE),
                              batch_size=1, shuffle=False, num_workers=num_workers)
     errors = {cap: [] for cap in caps}
     for sample in tqdm(loader, desc='eval %s' % split, leave=False):
         gt = sample['gt'][0].numpy()
         h, w = gt.shape
-        pred = model(sample['image'].cuda())[-1][0, 0].cpu().numpy()
+        pred = model(sample['image'].to(device))[-1][0, 0].cpu().numpy()
         pred = (cv2.resize(pred, (w, h), interpolation=cv2.INTER_LINEAR) + 1) / 2 * MAX_DEPTH
         crop = np.zeros_like(gt, dtype=bool)
         crop[int(0.40810811 * h):int(0.99189189 * h), int(0.03594771 * w):int(0.96405229 * w)] = True
@@ -57,12 +56,3 @@ def print_results(results, title=''):
         print('%s cap %dm' % (title, cap))
         print(''.join('%10s' % k for k in METRICS))
         print(''.join('%10.3f' % m[k] for k in METRICS))
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--model_path', type=str, default=config.FINETUNED)
-    parser.add_argument('--split', type=str, default='test', choices=['test', 'val'])
-    parser.add_argument('--caps', type=int, nargs='+', default=[50, 80])
-    args = parser.parse_args()
-    print_results(evaluate(load_model(args.model_path), args.split, args.caps), args.model_path)

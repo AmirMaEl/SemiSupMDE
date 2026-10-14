@@ -3,8 +3,13 @@
 Predicts depth in [-1, 1] at four scales; the last (full-resolution) output is the prediction,
 converted to metres as (pred + 1) / 2 * MAX_DEPTH.
 """
+import numpy as np
 import torch
 import torch.nn as nn
+import torchvision.transforms as transforms
+from PIL import Image
+
+from . import config
 
 MAX_DEPTH = 80.0
 
@@ -121,11 +126,45 @@ class UNet(nn.Module):
         return [center_in, output4, output3, output2, output1]
 
 
-def load_model(path, device='cuda'):
+def load_model(model='finetuned', device=None):
     """
-    Build the U-Net and load a checkpoint (state dict, optionally saved from a DataParallel model).
+    Build the U-Net and load weights.
+
+    Args:
+        model: 'finetuned' (vKITTI -> KITTI, the model of the paper) or 'pretrained' (vKITTI only), which
+            are downloaded on first use, or the path to a checkpoint (state dict, optionally saved from a
+            DataParallel model).
+        device: defaults to 'cuda' if available, else 'cpu'.
     """
-    model = UNet()
+    from .download import download_model
+    path = download_model(model) if model in config.MODELS else model
+    device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
+    net = UNet()
     state_dict = torch.load(path, map_location='cpu')
-    model.load_state_dict({k.replace('module.', ''): v for k, v in state_dict.items()})
-    return model.to(device).eval()
+    net.load_state_dict({k.replace('module.', ''): v for k, v in state_dict.items()})
+    return net.to(device).eval()
+
+
+@torch.no_grad()
+def predict_depth(model, image):
+    """
+    Predict metric depth for one image.
+
+    Args:
+        model: a model from load_model.
+        image: a file path, a PIL image or an RGB uint8 array (H x W x 3).
+
+    Returns:
+        Depth in metres as a float32 array of the input resolution (H x W).
+    """
+    if isinstance(image, str):
+        image = Image.open(image)
+    elif isinstance(image, np.ndarray):
+        image = Image.fromarray(image)
+    image = image.convert('RGB')
+    w, h = image.size
+    x = transforms.ToTensor()(image.resize(config.IMG_SIZE, Image.BICUBIC)) * 2 - 1
+    device = next(model.parameters()).device
+    pred = model(x[None].to(device))[-1]
+    pred = torch.nn.functional.interpolate(pred, size=(h, w), mode='bilinear', align_corners=False)
+    return ((pred[0, 0] + 1) / 2 * MAX_DEPTH).cpu().numpy().astype(np.float32)
