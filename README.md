@@ -42,7 +42,7 @@ The same is available on the command line as `semisupmde {download,eval,predict,
 
 # Data
 `semisupmde download ...` (or `./run.sh download ...`) fetches
-- `models`: the two checkpoints, checked against their md5
+- `models`: the two checkpoints from [Hugging Face](https://huggingface.co/AmirMaEl/SemiSupMDE) (FAUbox as a fallback), checked against their md5
     - `pretrained_vKITTI.pth`: pretrained on vKITTI only (starting point of the finetuning)
     - `finetuned_KITTI.pth`: after domain adaptation to KITTI (the model reported in the paper)
 - `kitti test val train`: the KITTI raw files of the given splits into `KITTI_ROOT` (default `$SEMISUPMDE_HOME/data/kitti_data`). Only the files the splits use are read out of the drive archives on the KITTI server with HTTP range requests: 1.8 GB for the test split instead of 76 GB of full drives.

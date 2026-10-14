@@ -15,6 +15,7 @@ import os
 import shutil
 import tarfile
 import time
+import urllib.error
 import urllib.request
 import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -33,7 +34,9 @@ def urlopen(url, headers=None, method=None):
             return urllib.request.urlopen(urllib.request.Request(url, headers=headers or {}, method=method),
                                           timeout=60)
         except OSError as e:
-            if attempt == RETRIES - 1:
+            # client errors such as 404 will not go away by retrying (except 429, too many requests)
+            permanent = isinstance(e, urllib.error.HTTPError) and 400 <= e.code < 500 and e.code != 429
+            if permanent or attempt == RETRIES - 1:
                 raise
             print('  %s: %s, retrying' % (url, e))
             time.sleep(2 ** (attempt + 1))
@@ -107,15 +110,21 @@ def md5(path):
 
 def download_model(name):
     """Download a released model ('pretrained' or 'finetuned') if needed and return its path."""
-    filename, url, checksum = config.MODELS[name]
+    filename, urls, checksum = config.MODELS[name]
     path = os.path.join(config.CHECKPOINT_DIR, filename)
-    if not os.path.exists(path):
-        download(url, path)
-        if md5(path) != checksum:
-            os.rename(path, path + '.corrupt')
-            raise IOError('%s does not have the expected md5 %s (download link changed or broken?), '
-                          'moved to %s.corrupt' % (url, checksum, path))
-    return path
+    if os.path.exists(path):
+        return path
+    for url in urls:
+        try:
+            download(url, path)
+        except OSError as e:
+            print('  %s failed (%s)' % (url, e))
+            continue
+        if md5(path) == checksum:
+            return path
+        print('  %s does not have the expected md5 %s' % (url, checksum))
+        os.remove(path)
+    raise IOError('could not download %s from %s' % (filename, ', '.join(urls)))
 
 
 def download_models():

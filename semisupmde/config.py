@@ -15,13 +15,16 @@ KITTI_ROOT = os.environ.get('KITTI_ROOT', os.path.join(HOME, 'data', 'kitti_data
 VKITTI_ROOT = os.environ.get('VKITTI_ROOT', os.path.join(HOME, 'data', 'vkitti'))
 CHECKPOINT_DIR = os.path.join(HOME, 'checkpoints')
 
-# released models: file name, download URL and md5
+# released models: file name, download URLs (Hugging Face, then FAUbox as a fallback) and md5
+HF_REPO = 'https://huggingface.co/AmirMaEl/SemiSupMDE/resolve/main/'
 MODELS = {
     'pretrained': ('pretrained_vKITTI.pth',
-                   'https://faubox.rrze.uni-erlangen.de/dl/fiRocZxYkVUdcueEYpFWWd/pretrained_vKITTI.pth',
+                   [HF_REPO + 'pretrained_vKITTI.pth',
+                    'https://faubox.rrze.uni-erlangen.de/dl/fiRocZxYkVUdcueEYpFWWd/pretrained_vKITTI.pth'],
                    'b205d459a32a6eb645efe4235372a6f5'),
     'finetuned': ('finetuned_KITTI.pth',
-                  'https://faubox.rrze.uni-erlangen.de/dl/fiQirkjS1AraYBgLq9fCGx/finetuned_KITTI.pth',
+                  [HF_REPO + 'finetuned_KITTI.pth',
+                   'https://faubox.rrze.uni-erlangen.de/dl/fiQirkjS1AraYBgLq9fCGx/finetuned_KITTI.pth'],
                   '7af8e452fb529674c579f7d5b333db7e'),
 }
 PRETRAINED = os.path.join(CHECKPOINT_DIR, MODELS['pretrained'][0])
