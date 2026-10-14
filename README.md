@@ -1,10 +1,24 @@
 # CONSISTENCY REGULARISATION FOR UNSUPERVISED DOMAIN ADAPTATION IN MONOCULAR DEPTH ESTIMATION
 Amir El-Ghoussani, Julia Hornauer, Gustavo Carneiro, Vasileios Belagiannis
 
+[![Paper](https://img.shields.io/badge/PMLR-CoLLAs%202024-blue)](https://proceedings.mlr.press/v274/el-ghoussani25a.html)
+[![arXiv](https://img.shields.io/badge/arXiv-2405.17704-b31b1b)](https://arxiv.org/abs/2405.17704)
+[![Models](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-models-yellow)](https://huggingface.co/AmirMaEl/SemiSupMDE)
+
 This is the official codebase for the paper [Consistency Regularisation for Unsupervised Domain Adaptation in Monocular Depth Estimation](https://arxiv.org/abs/2405.17704) (CoLLAs 2024). It contains the vKITTI → KITTI setting: evaluation on the KITTI Eigen test split and the domain-adaptation finetuning.
 ![overview of proposed finetuning approach](https://arxiv.org/html/2405.17704v1/extracted/5624780/overview.png "overview")
 # Abstract
 In monocular depth estimation, unsupervised domain adaptation has recently been explored to relax the dependence on large annotated image-based depth datasets. However, this comes at the cost of training multiple models or requiring complex training protocols. We formulate unsupervised domain adaptation for monocular depth estimation as a consistency-based semi-supervised learning problem by assuming access only to the source domain ground truth labels. To this end, we introduce a pairwise loss function that regularises predictions on the source domain while enforcing perturbation consistency across multiple augmented views of the unlabelled target samples. Importantly, our approach is simple and effective, requiring only training of a single model in contrast to the prior work. In our experiments, we rely on the standard depth estimation benchmarks KITTI and NYUv2 to demonstrate state-of-the-art results compared to related approaches. Furthermore, we analyse the simplicity and effectiveness of our approach in a series of ablation studies.
+
+# Models
+The checkpoints are on Hugging Face: [AmirMaEl/SemiSupMDE](https://huggingface.co/AmirMaEl/SemiSupMDE).
+
+| Model | Description | AbsRel (KITTI, 50 m) | Download |
+|---|---|---|---|
+| `finetuned` | after domain adaptation vKITTI → KITTI, the model reported in the paper | 0.161 | [finetuned_KITTI.pth](https://huggingface.co/AmirMaEl/SemiSupMDE/resolve/main/finetuned_KITTI.pth) |
+| `pretrained` | pretrained on Virtual KITTI only, the starting point of the adaptation | 0.170 | [pretrained_vKITTI.pth](https://huggingface.co/AmirMaEl/SemiSupMDE/resolve/main/pretrained_vKITTI.pth) |
+
+You don't need to download them by hand: `semisupmde.load_model('finetuned')` and all `run.sh` commands fetch them on first use (with the FAUbox links as a fallback) and check them against their md5. To load a checkpoint without this package, see the [model card](https://huggingface.co/AmirMaEl/SemiSupMDE), which has a standalone `model.py`.
 
 # Getting started
 One command installs everything, downloads the models and the test data, and evaluates the finetuned model (Linux, Python >= 3.8, about 4 GB of disk; a CUDA GPU is recommended):
@@ -42,9 +56,7 @@ The same is available on the command line as `semisupmde {download,eval,predict,
 
 # Data
 `semisupmde download ...` (or `./run.sh download ...`) fetches
-- `models`: the two checkpoints from [Hugging Face](https://huggingface.co/AmirMaEl/SemiSupMDE) (FAUbox as a fallback), checked against their md5
-    - `pretrained_vKITTI.pth`: pretrained on vKITTI only (starting point of the finetuning)
-    - `finetuned_KITTI.pth`: after domain adaptation to KITTI (the model reported in the paper)
+- `models`: the two checkpoints from [Hugging Face](https://huggingface.co/AmirMaEl/SemiSupMDE) into `$SEMISUPMDE_HOME/checkpoints` (see [Models](#models))
 - `kitti test val train`: the KITTI raw files of the given splits into `KITTI_ROOT` (default `$SEMISUPMDE_HOME/data/kitti_data`). Only the files the splits use are read out of the drive archives on the KITTI server with HTTP range requests: 1.8 GB for the test split instead of 76 GB of full drives.
 - `vkitti`: [Virtual KITTI 1.3.1](https://europe.naverlabs.com/research/computer-vision/proxy-virtual-worlds-vkitti-1/) RGB and depth into `VKITTI_ROOT` (default `$SEMISUPMDE_HOME/data/vkitti`, 20 GB, only needed for finetuning)
 
